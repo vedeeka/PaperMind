@@ -10,16 +10,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from langchain_core.tools import tool
 
-from langchain_classic.agents import initialize_agent, AgentType, Tool
 from langchain_classic.chains import RetrievalQA
 
 from pinecone import Pinecone, ServerlessSpec
 
 
-# -----------------------------
-# LOAD ENV VARIABLES
-# -----------------------------
+
 
 load_dotenv()
 
@@ -31,9 +29,6 @@ genai.configure(api_key=gemini_api_key)
 print("Gemini API configured")
 
 
-# -----------------------------
-# INITIALIZE PINECONE
-# -----------------------------
 
 pc = Pinecone(api_key=pinecone_api_key)
 
@@ -58,9 +53,7 @@ index = pc.Index(index_name)
 print("Pinecone initialized")
 
 
-# -----------------------------
-# EMBEDDING MODEL
-# -----------------------------
+
 
 embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-small-en-v1.5"
@@ -69,9 +62,6 @@ embeddings = HuggingFaceEmbeddings(
 print("Embedding model loaded")
 
 
-# -----------------------------
-# TEXT SPLITTER
-# -----------------------------
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=800,
@@ -79,9 +69,7 @@ splitter = RecursiveCharacterTextSplitter(
 )
 
 
-# -----------------------------
-# INGEST PAPERS
-# -----------------------------
+
 
 papers_folder = "deepresearch/papers"
 
@@ -132,10 +120,6 @@ else:
     print("Pinecone index already populated")
 
 
-# -----------------------------
-# LLM
-# -----------------------------
-
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=gemini_api_key,
@@ -145,9 +129,7 @@ llm = ChatGoogleGenerativeAI(
 print("Gemini LLM initialized")
 
 
-# -----------------------------
-# VECTOR STORE
-# -----------------------------
+
 
 vector_store = PineconeVectorStore(
     index=index,
@@ -162,9 +144,7 @@ retriever = vector_store.as_retriever(
 print("Retriever initialized")
 
 
-# -----------------------------
-# RAG CHAIN
-# -----------------------------
+
 
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
@@ -173,12 +153,12 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=True
 )
 
+    
+
 print("RAG chain ready")
 
 
-# -----------------------------
-# AGENT FUNCTIONS
-# -----------------------------
+
 
 def comparison_agent(papers: str):
 
@@ -263,48 +243,60 @@ Sections:
     return llm.invoke(prompt).content
 
 
-# -----------------------------
-# TOOLS
-# -----------------------------
 
-research_tool = Tool(
-    name="ResearchQA",
-    func=lambda q: qa_chain.invoke({"query": q})["result"],
-    description="Answer questions from research papers"
+@tool
+def research_qa(query: str) -> str:
+    """Answer questions from research papers."""
+    return qa_chain.invoke({"query": query})["result"]
+
+@tool
+def comparison_agent_tool(papers: str) -> str:
+    """Compare research papers."""
+    return comparison_agent(papers)
+
+
+@tool
+def review_agent_tool(_: str) -> str:
+    """Write a literature review."""
+    return literature_review_agent(_)
+
+tools = [research_qa, comparison_agent_tool, review_agent_tool]
+
+
+
+from langchain.agents import create_agent
+from langchain_core.prompts import PromptTemplate
+
+
+
+prompt =  """You are a research assistant.
+
+            Use the available tools to answer questions about research papers.
+            Be concise and to the point.
+            Always use the tools when relevant.
+
+            Tools:
+            {tools}
+
+            Question: {input}
+            {agent_scratchpad}
+            """
+
+
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    system_prompt=prompt
 )
 
-comparison_tool = Tool(
-    name="PaperComparison",
-    func=comparison_agent,
-    description="Compare research papers. Input: 'paper1.pdf, paper2.pdf'"
-)
-
-review_tool = Tool(
-    name="LiteratureReview",
-    func=literature_review_agent,
-    description="Generate literature review"
-)
-
-tools = [research_tool, comparison_tool, review_tool]
 
 
-# -----------------------------
-# AGENT
-# -----------------------------
 
-agent = initialize_agent(
-    tools,
-    llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True,
-)
 
 print("Agent ready")
 
 
-# -----------------------------
-# CLI
-# -----------------------------
+
 
 print("\nDeepResearch AI Agent\n")
 
@@ -315,7 +307,11 @@ while True:
     if query == "exit":
         break
 
-    response = agent.invoke({"input": query})
+    response = agent.invoke({
+        "messages": [
+            {"role": "user", "content": query}
+        ]
+    })
 
     print("\nAnswer:\n")
-    print(response["output"])
+    print(response)
