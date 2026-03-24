@@ -173,6 +173,7 @@ def comparison_agent(papers: str):
         query_vec = embed_model.encode(
             f"summary of {paper}"
         ).tolist()
+        
 
         results = index.query(
             vector=query_vec,
