@@ -1,27 +1,76 @@
-import chromadb
-from chromadb.utils import embedding_functions
 import os
+import chromadb
 
+from chromadb.api.types import (
+    EmbeddingFunction,
+    Documents,
+    Embeddings
+)
+
+from google import genai
+
+
+# =========================================
+# Gemini Client
+# =========================================
+
+google_client = genai.Client(
+    api_key=os.environ["GOOGLE_API_KEY"]
+)
+
+
+# =========================================
+# Gemini Embedding Function
+# =========================================
+
+class GeminiEmbeddingFunction(EmbeddingFunction):
+
+    def __call__(
+        self,
+        input: Documents
+    ) -> Embeddings:
+
+        response = google_client.models.embed_content(
+            model="gemini-embedding-001",
+            contents=input
+        )
+
+        return [
+            embedding.values
+            for embedding in response.embeddings
+        ]
+
+
+# =========================================
+# Embedding Function
+# =========================================
+
+embedding_function = GeminiEmbeddingFunction()
+
+
+# =========================================
+# ChromaDB
+# =========================================
 
 chroma_client = chromadb.Client()
 
-embedding_function = None
-collection = None
 
+collection = chroma_client.get_or_create_collection(
+    name="deepresearch",
+    embedding_function=embedding_function
+)
+
+
+# =========================================
+# Get Collection
+# =========================================
 
 def get_collection():
 
     global collection
-    global embedding_function
-
-    if embedding_function is None:
-        embedding_function = (
-            embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name="all-MiniLM-L6-v2"
-            )
-        )
 
     if collection is None:
+
         collection = chroma_client.get_or_create_collection(
             name="deepresearch",
             embedding_function=embedding_function
@@ -29,6 +78,10 @@ def get_collection():
 
     return collection
 
+
+# =========================================
+# Reset Database
+# =========================================
 
 def reset_database():
 
@@ -38,7 +91,11 @@ def reset_database():
 
         all_docs = col.get()
 
-        if all_docs and all_docs.get("ids"):
+        if (
+            all_docs
+            and all_docs.get("ids")
+            and len(all_docs["ids"]) > 0
+        ):
 
             col.delete(
                 ids=all_docs["ids"]
@@ -50,6 +107,11 @@ def reset_database():
             f"Notice on wiping collection IDs: {e}"
         )
 
+
+    # =====================================
+    # Delete uploaded PDFs
+    # =====================================
+
     storage_dir = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -59,24 +121,27 @@ def reset_database():
         "uploaded_papers"
     )
 
+
     if os.path.exists(storage_dir):
 
         try:
 
-            for f in os.listdir(storage_dir):
+            for filename in os.listdir(storage_dir):
 
-                fp = os.path.join(
+                file_path = os.path.join(
                     storage_dir,
-                    f
+                    filename
                 )
 
-                if os.path.isfile(fp):
-                    os.remove(fp)
+                if os.path.isfile(file_path):
+
+                    os.remove(file_path)
 
         except Exception as e:
 
             print(
                 f"Notice on cleaning uploaded_papers: {e}"
             )
+
 
     return True
