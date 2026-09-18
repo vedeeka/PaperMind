@@ -17,6 +17,7 @@ import PaperLibrary from './components/PaperLibrary';
 import SemanticSearch from './components/SemanticSearch';
 import CompareMatrix from './components/CompareMatrix';
 import SettingsModal from './components/SettingsModal';
+import { API_BASE } from './config';
 
 const TABS = [
   { id: 'research', label: 'Deep Research Studio', icon: Brain, badge: 'Agentic' },
@@ -37,7 +38,7 @@ export default function App() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch(`${API_BASE}/api/status`);
       if (res.ok) {
         const data = await res.json();
         setSystemStats(data);
@@ -46,6 +47,7 @@ export default function App() {
       console.error('Error fetching system status:', err);
     }
   };
+
 
   useEffect(() => {
     fetchStats();
@@ -113,7 +115,7 @@ export default function App() {
             <button
               onClick={async () => {
                 if (confirm('Start a new session? This will wipe all indexed papers from vector memory.')) {
-                  await fetch('/api/reset', { method: 'POST' });
+                  await fetch(`${API_BASE}/api/reset`, { method: 'POST' });
                   fetchStats();
                   window.location.reload();
                 }
@@ -121,6 +123,7 @@ export default function App() {
               className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-slate-200/80 text-slate-700 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
               title="Clear all stored documents and start fresh"
             >
+
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Session</span>
             </button>

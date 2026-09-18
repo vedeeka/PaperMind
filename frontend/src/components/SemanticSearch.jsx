@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { API_BASE } from '../config';
 import {
   Search,
   Sliders,
@@ -27,7 +28,7 @@ export default function SemanticSearch() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/search', {
+      const res = await fetch(`${API_BASE}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, top_k: Number(topK) })

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../config';
 import {
   Upload,
   FileText,
@@ -31,7 +32,7 @@ export default function PaperLibrary({ onUpdateStats }) {
   const fetchPapers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/papers');
+      const res = await fetch(`${API_BASE}/api/papers`);
       const data = await res.json();
       setPapers(data.papers || []);
       if (onUpdateStats) onUpdateStats();
@@ -57,7 +58,7 @@ export default function PaperLibrary({ onUpdateStats }) {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         body: formData
       });
@@ -97,7 +98,7 @@ export default function PaperLibrary({ onUpdateStats }) {
   const handleIndexSamples = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/papers/index-samples', { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/papers/index-samples`, { method: 'POST' });
       const data = await res.json();
       fetchPapers();
     } catch (err) {
@@ -110,7 +111,7 @@ export default function PaperLibrary({ onUpdateStats }) {
   const handleDeletePaper = async (filename) => {
     if (!confirm(`Are you sure you want to delete '${filename}' from vector memory?`)) return;
     try {
-      await fetch(`/api/papers/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/papers/${encodeURIComponent(filename)}`, { method: 'DELETE' });
       fetchPapers();
     } catch (err) {
       console.error('Delete error:', err);
@@ -121,7 +122,7 @@ export default function PaperLibrary({ onUpdateStats }) {
     setInspectingChunks(filename);
     setChunksLoading(true);
     try {
-      const res = await fetch(`/api/papers/${encodeURIComponent(filename)}/chunks`);
+      const res = await fetch(`${API_BASE}/api/papers/${encodeURIComponent(filename)}/chunks`);
       const data = await res.json();
       setChunksList(data.chunks || []);
     } catch (err) {
@@ -407,7 +408,7 @@ export default function PaperLibrary({ onUpdateStats }) {
 
               <div className="flex-1 w-full bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
                 <iframe
-                  src={`/api/papers/${encodeURIComponent(viewingPdf)}/pdf`}
+                  src={`${API_BASE}/api/papers/${encodeURIComponent(viewingPdf)}/pdf`}
                   className="w-full h-full border-none"
                   title="PDF Viewer"
                 />

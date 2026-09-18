@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { API_BASE } from '../config';
 import {
   GitCompare,
   FileText,
@@ -23,7 +24,7 @@ export default function CompareMatrix({ apiKey }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch('/api/papers')
+    fetch(`${API_BASE}/api/papers`)
       .then(res => res.json())
       .then(data => {
         const pList = data.papers || [];
@@ -55,7 +56,7 @@ export default function CompareMatrix({ apiKey }) {
     setComparisonResult(null);
 
     try {
-      const res = await fetch('/api/compare', {
+      const res = await fetch(`${API_BASE}/api/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

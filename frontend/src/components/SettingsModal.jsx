@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../config';
 import {
   X,
   Key,
@@ -21,7 +22,7 @@ export default function SettingsModal({ isOpen, onClose, apiKey, onSaveApiKey, s
   const handleSave = async () => {
     onSaveApiKey(inputKey.trim());
     try {
-      await fetch('/api/settings/key', {
+      await fetch(`${API_BASE}/api/settings/key`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ api_key: inputKey.trim() })

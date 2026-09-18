@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import confetti from 'canvas-confetti';
+import { API_BASE } from '../config';
 import {
   Sparkles,
   Send,
@@ -67,7 +68,7 @@ export default function DeepResearchStudio({ onSelectPaper, apiKey }) {
       // Step 1: Breakdown only
       setActiveNode('breakdown');
       try {
-        const res = await fetch('/api/research/breakdown', {
+        const res = await fetch(`${API_BASE}/api/research/breakdown`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: query, api_key: apiKey })
@@ -97,7 +98,7 @@ export default function DeepResearchStudio({ onSelectPaper, apiKey }) {
     setCurrentIteration(0);
 
     try {
-      const res = await fetch('/api/research/run', {
+      const res = await fetch(`${API_BASE}/api/research/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
